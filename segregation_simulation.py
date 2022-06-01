@@ -50,12 +50,12 @@ class Agent():
 
 class Firm():
     """Class of firms in the simulation"""
-    def __init__(self, id: int, alpha: float, beta: float, capacity: int):
+    def __init__(self, id: int, alpha: float, beta: float, capacity: int, segregation_type: str = "isolation"):
         """Firm class.
 
         :param id: Unique node id of the graph.
-        :param alpha: Probability of hiring agent of group A (0), the minority class
-        :param beta: Probability of hiring agent of group B (1), the majority class
+        :param alpha: Probability of hiring agent of group A (0), the majority class
+        :param beta: Probability of hiring agent of group B (1), the minority class
         :param capacity: Maximum capacity of the firm. 
         """
         self.id = id
@@ -64,9 +64,15 @@ class Firm():
         self.capacity = capacity
         self.agents = []
     
+    def has_room(self) -> bool:
+        if len(self.agents) < self.capacity:
+            return True
+        else:
+            return False
+
     def add_agent(self, agent: Agent):
         """Adds an agent to the firm."""
-        if len(self.agents) < self.capacity:
+        if self.has_room():
             self.agents.append(agent)
         else:
             raise RuntimeError(f"Firm was full and could not add employee.")
@@ -119,6 +125,7 @@ class Environment():
         num_group_b: int,
         gammas_a: Sequence,
         gammas_b: Sequence,
+        segregation_index: str = "both"
     ):
         """Simulation Environment Class. 
 
@@ -135,6 +142,7 @@ class Environment():
         self.num_firms = num_firms
         self.num_group_a = num_group_a
         self.num_group_b = num_group_b
+        self.segregation_index = segregation_index
         
         self.capacities = self._aslist(capacities, self.num_firms)
         self.alphas = self._aslist(alphas, self.num_firms)
@@ -191,7 +199,17 @@ class Environment():
         else:
             return self.agents[id - len(self.firms)]
 
-    def segregation(self, firm_id: int, group: int = 1, type: str = "isolation") -> float:
+    def _isolation(group_count: int, group_total: int, firm_total: int) -> float:
+        return group_count ** 2 / (group_total * firm_total)
+
+    def _dissimilarity(group_count: int, group_total: int, firm_total:int, pop_total: int) -> float:
+        return 1/2 * np.abs(
+            group_count/group_total
+            - (firm_total - group_count)/(pop_total - group_total)
+        )
+
+
+    def segregation(self, firm_id: int, group: int = 1) -> float:
         """Computes the segregation measure.
 
         :param firm_id: Firm id to compute the measure for.
@@ -205,45 +223,65 @@ class Environment():
             
 
         if firm_id < self.num_firms:
+            
             group_total = self.num_group_a if group == 0 else self.num_group_b
             group_count = self.firms[firm_id].group_count(group)
-            if self.firms[firm_id].total_agents() == 0:
+            firm_total = self.firms[firm_id].total_agents()
+            pop_total = len(self.agents)
+
+            if firm_total == 0:
                 warnings.warn(
                     f"Firm {firm_id} has 0 agents. Segregation is set to 0 for this firm", 
                     RuntimeWarning
                 )
                 segregation = 0
-            elif type == "isolation":
-                segregation = (
-                    group_count ** 2
-                    / group_total
-                    / len(self.agents)
+            elif self.segregation_index == "both":
+                return (
+                    self._isolation(group_count, group_total, firm_total),
+                    self._dissimilarity(group_count, group_total, firm_total, pop_total)
                 )
-            elif type == "dissimilarity":
-                segregation = (
-                    1/2 * (
-                            group_count/group_total
-                            - (self.firms[firm_id].total_agents() - group_count) / (len(self.agents) - group_total)
-                        )
-                )
+            elif self.segregation_index == "isolation":
+                return self._isolation(group_count, group_total, firm_total)
+            elif self.segregation_index == "dissimilarity":
+                return self._dissimilarity(group_count, group_total, firm_total, pop_total)
             else:
                 raise ValueError(f"Can only calculate isolation or dissimilarity, got {type}")
         
         else:
             raise ValueError(f"Firm {firm_id} is not a firm between 0 and {len(self.firms)}")
-        
-        return segregation
 
-    def total_segregation(self, group: int = 1, type: str = "isolation") -> float:
+    def total_segregation(self, group: int = 1) -> float:
         """Gets the total segregation measure for a group in the current environment"""
         total_segregation = [self.segregation(firm, group, type) for firm in range(self.num_firms)]
-        return sum(total_segregation)
+        if self.segregation_index == "both":
+            return tuple(map(sum, zip(*total_segregation)))
+        else:
+            return sum(total_segregation)
 
     def assign_firms(self, assignments: dict):
-        """Assigns agents to firms arbitrarily using a dictionary of agent: firm assignments."""
+        """Assigns agents to firms arbitrarily using a dictionary of agent: firm assignments.
+        Agents and firms by id number. 
+        """
         for i, k in assignments.items():
-            self.agents[i].firm = self.firms[k]
-            self.firms[k].add_agent(self.agents[i])
+            agent = self.get_player(i)
+            firm = self.get_player(k)
+            agent.firm = firm
+            firm.add_agent(agent)
+
+    def random_assignment(self) -> None:
+        """Randomly assigns agents to firms. Make sure there is enough
+        capacity amongst firms to hold all agents."""
+        assignments = {}
+        hiring_firms = {firm.id: firm for firm in self.firms}
+        for agent in self.agents:
+            while agent.id not in assignments.keys():
+                firm_id = random.choice(list(hiring_firms.keys()))
+                if hiring_firms[firm_id].has_room():
+                    assignments.update({agent.id: firm_id})
+                else:
+                    hiring_firms.pop(firm_id)
+
+        self.assign_firms(assignments)
 
     def simulate(self, rounds: int, shuffle: bool = True, verbose: bool = False):
         """Run the main simulation.
@@ -252,7 +290,8 @@ class Environment():
         :param shuffle: Shuffle the order of agents turns every round, defaults to True
         :param verbose: Shows progress bar if true., defaults to False
         """
-
+        a_segregation = [self.total_segregation(0)]
+        b_segregation = [self.total_segregation(1)]
         for _ in tqdm(range(rounds), disable = not verbose):
             if shuffle:
                 indices = np.random.permutation(len(self.agents))
@@ -264,6 +303,8 @@ class Environment():
                     
                     if isinstance(new_firm, Firm):
                         new_firm.hire(self.agents[i])
+            a_segregation.append(self.total_segregation(0))
+            b_segregation.append(self.total_segregation(1))
     
     def get_graph(self, **segregation_kwargs) -> nx.Graph:
         """Gets the underlying graph and saves as a class attribute."""
@@ -294,10 +335,14 @@ class Environment():
                     "gamma": player.gamma,
                 }
             elif isinstance(player, Firm):
+                if self.segregation_index == "both":
+                    segregation = self.segregation(node, **segregation_kwargs)[0]
+                else: 
+                    segregation = self.segregation(node, **segregation_kwargs)
                 node_attr = {
                     "alpha": player.alpha,
                     "beta": player.beta,
-                    "segregation": self.segregation(node, **segregation_kwargs)
+                    "segregation": segregation
                 }
             nx.set_node_attributes(self.graph, {node: node_attr})
 
@@ -312,6 +357,7 @@ class Environment():
         bipartite: bool = False,
         label_y_offset: float = 0.1,
         label_x_offset: float = 0,
+        spring: float = 1.8,
         **plot_kwargs
     ):
     
@@ -337,15 +383,21 @@ class Environment():
                 align="horizontal"
             )
         else:
-            pos = nx.drawing.spring_layout(self.graph)
+            pos = nx.drawing.spring_layout(self.graph, k = spring/np.sqrt(len(self.ids)))
 
 
         for firm in self.firms:
+
+            if self.segregation_index == "both":
+                seg = self.segregation(firm.id)[0]
+            else:
+                seg = self.segregation(firm.id)
+
             x, y = pos[firm.id]
             plt.text(
                 x + label_x_offset, 
                 y + label_y_offset, 
-                s = f'{self.segregation(firm.id):2g}'
+                s = f'{seg:2g}'
             )
 
         nx.draw(
@@ -356,13 +408,20 @@ class Environment():
             **plot_kwargs
         )
 
+        if self.segregation_index == "both":
+            total_seg_0 = self.total_segregation(0)[0]
+            total_seg_1 = self.total_segregation(1)[0]
+        else:
+            total_seg_0 = self.total_segregation(0)
+            total_seg_1 = self.total_segregation(1)
+
         plt.text(
             0.8,
             0.05,
             s = (
                 f"Total Segregation\n"
-                f"Group A: {self.total_segregation(0):2g}\n"
-                f"Group B: {self.total_segregation(1):2g}"
+                f"Group A: {total_seg_0:2g}\n"
+                f"Group B: {total_seg_1:2g}"
             ),
             fontsize=12,
             transform=self.ax.transAxes
@@ -370,23 +429,24 @@ class Environment():
 
         return self.fig
 
-K = 20
-c = 20
 
-env = Environment(
-    num_firms = K,
-    capacities = c,
-    alphas = [0.8 for _ in range(int(K/2))] + [0.9 for _ in range(int(K/2))],
-    betas = 1,
-    num_group_a = 80,
-    num_group_b = 20,
-    gammas_a = 0.2,
-    gammas_b = 0.5,
-)
+if __name__ == "__main__":
 
+    K = 20
+    c = 20
 
-#%%
-env.simulate(100)
-env.plot_network()
-env.fig
-# %%
+    env = Environment(
+        num_firms = K,
+        capacities = c,
+        alphas = 1,
+        betas = 0.4,
+        num_group_a = 80,
+        num_group_b = 20,
+        gammas_a = 0.2,
+        gammas_b = 0.4,
+    )
+
+    env.random_assignment()
+    env.simulate(100)
+    env.plot_network()
+    env.fig.show()
