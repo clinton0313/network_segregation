@@ -199,10 +199,10 @@ class Environment():
         else:
             return self.agents[id - len(self.firms)]
 
-    def _isolation(group_count: int, group_total: int, firm_total: int) -> float:
+    def _isolation(self, group_count: int, group_total: int, firm_total: int) -> float:
         return group_count ** 2 / (group_total * firm_total)
 
-    def _dissimilarity(group_count: int, group_total: int, firm_total:int, pop_total: int) -> float:
+    def _dissimilarity(self, group_count: int, group_total: int, firm_total:int, pop_total: int) -> float:
         return 1/2 * np.abs(
             group_count/group_total
             - (firm_total - group_count)/(pop_total - group_total)
@@ -252,7 +252,7 @@ class Environment():
 
     def total_segregation(self, group: int = 1) -> float:
         """Gets the total segregation measure for a group in the current environment"""
-        total_segregation = [self.segregation(firm, group, type) for firm in range(self.num_firms)]
+        total_segregation = [self.segregation(firm, group) for firm in range(self.num_firms)]
         if self.segregation_index == "both":
             return tuple(map(sum, zip(*total_segregation)))
         else:
@@ -305,6 +305,7 @@ class Environment():
                         new_firm.hire(self.agents[i])
             a_segregation.append(self.total_segregation(0))
             b_segregation.append(self.total_segregation(1))
+        return (a_segregation, b_segregation)
     
     def get_graph(self, **segregation_kwargs) -> nx.Graph:
         """Gets the underlying graph and saves as a class attribute."""
@@ -444,9 +445,12 @@ if __name__ == "__main__":
         num_group_b = 20,
         gammas_a = 0.2,
         gammas_b = 0.4,
+        segregation_index="dissimilarity"
     )
 
     env.random_assignment()
     env.simulate(100)
     env.plot_network()
     env.fig.show()
+
+# %%
