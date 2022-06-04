@@ -1,7 +1,10 @@
 #%%
 import itertools
 <<<<<<< HEAD
+<<<<<<< HEAD
 import random
+=======
+>>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
 import matplotlib.pyplot as plt
@@ -21,9 +24,12 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     np.random.seed(seed)
     random.seed(seed)
 
+=======
+>>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
     if not os.path.isfile(file):
@@ -39,9 +45,12 @@ def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
     with open(file, "rb") as infile:
         data = pickle.load(infile)
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 
 
+=======
+>>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
     env = Environment(**env_args)
@@ -70,6 +79,7 @@ exp1 = {
     "gammas_a": a_class["x"].values,
     "gammas_b": b_class["x"].values,
 }
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 exp2 = deepcopy(exp1)
@@ -125,6 +135,8 @@ step_down_exps = [
 for env_args, seed in tqdm(itertools.product(step_down_exps, range(10))):
     run_experiment(100, "segregation_experiments2.pkl", seed, **env_args)
 =======
+=======
+>>>>>>> c3b7eeb... Ran first few experiments
 
 exp2 = deepcopy(exp1)
 exp2.update({
@@ -165,5 +177,9 @@ exps.insert(1, exp2)
 # %%
 
 for env_args, seed in tqdm(itertools.product(exps, range(10))):
+<<<<<<< HEAD
+    run_experiment(200, "segregation_experiments.pkl", seed, **env_args)
+>>>>>>> c3b7eeb... Ran first few experiments
+=======
     run_experiment(200, "segregation_experiments.pkl", seed, **env_args)
 >>>>>>> c3b7eeb... Ran first few experiments
