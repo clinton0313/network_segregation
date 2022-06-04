@@ -2,11 +2,14 @@
 import itertools
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import random
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
+=======
+>>>>>>> 202b5910818732903ce4c3e77dd71cbf468b878c
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -25,6 +28,7 @@ def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     np.random.seed(seed)
     random.seed(seed)
 
@@ -32,6 +36,8 @@ def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
 >>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
+=======
+>>>>>>> 202b5910818732903ce4c3e77dd71cbf468b878c
     if not os.path.isfile(file):
         data = pd.DataFrame(
             columns = (
@@ -46,6 +52,7 @@ def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
         data = pickle.load(infile)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 
 
@@ -53,6 +60,8 @@ def run_experiment(rounds: int, file: str, seed: int = 0, **env_args):
 >>>>>>> c3b7eeb... Ran first few experiments
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
+=======
+>>>>>>> 202b5910818732903ce4c3e77dd71cbf468b878c
     env = Environment(**env_args)
     env.random_assignment()
     a_segregation, b_segregation = env.simulate(rounds)
@@ -79,6 +88,7 @@ exp1 = {
     "gammas_a": a_class["x"].values,
     "gammas_b": b_class["x"].values,
 }
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 
@@ -137,6 +147,8 @@ for env_args, seed in tqdm(itertools.product(step_down_exps, range(10))):
 =======
 =======
 >>>>>>> c3b7eeb... Ran first few experiments
+=======
+>>>>>>> 202b5910818732903ce4c3e77dd71cbf468b878c
 
 exp2 = deepcopy(exp1)
 exp2.update({
@@ -178,8 +190,12 @@ exps.insert(1, exp2)
 
 for env_args, seed in tqdm(itertools.product(exps, range(10))):
 <<<<<<< HEAD
+<<<<<<< HEAD
     run_experiment(200, "segregation_experiments.pkl", seed, **env_args)
 >>>>>>> c3b7eeb... Ran first few experiments
 =======
     run_experiment(200, "segregation_experiments.pkl", seed, **env_args)
 >>>>>>> c3b7eeb... Ran first few experiments
+=======
+    run_experiment(200, "segregation_experiments.pkl", seed, **env_args)
+>>>>>>> 202b5910818732903ce4c3e77dd71cbf468b878c
