@@ -113,9 +113,23 @@ step_down_exps = [
 ]
 # %%
 
-for env_args, seed in tqdm(itertools.product(step_down_exps, range(5))):
-    run_experiment(100, "employer_experiments.pkl", seed, **env_args)
+# for env_args, seed in tqdm(itertools.product(step_down_exps, range(5))):
+#     run_experiment(100, "employer_experiments.pkl", seed, **env_args)
 
 # for env_args, seed in tqdm(itertools.product(exps, range(5))):
 #     run_experiment(100, "employee_experiments.pkl", seed, **env_args)
+
+#%%
+#Plot Simulation steps
+
+env1 = Environment(**exp1)
+
+env1.random_assignment()
+env1.plot_network(firm_attrs=False, title="Round 0", spring = 3, node_size=100)
+env1.fig.savefig(os.path.join("simulation_figs", "round_0.png"), facecolor="white", transparent=False)
+
+for round in range(20):
+    env1.simulate(rounds=1)
+    env1.plot_network(firm_attrs=False, title=f"Round {round + 1}", spring=3, node_size=100)
+    env1.fig.savefig(os.path.join("simulation_figs", f"round_{round + 1}.png"), facecolor="white", transparent=False)
 

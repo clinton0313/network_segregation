@@ -160,6 +160,7 @@ class Environment():
         self.fig = None
         self.ax = None
         self.graph = None
+        self.pos = None
 
     def _aslist(self, x: Any, n: int) -> list:
         if isinstance(x, int) or isinstance(x, float):
@@ -356,20 +357,31 @@ class Environment():
         firm_color: str = "black",
         a_color: str = "tab:blue",
         b_color: str = "tab:red",
+        title: str = "",
         firm_attrs: bool = True,
-        agent_attrs: bool = True,
         bipartite: bool = False,
         label_y_offset: float = 0.1,
         label_x_offset: float = 0,
         spring: float = 1.8,
+        node_size: float = 200,
         **plot_kwargs
     ):
-    
-        if new_fig:
-            self.fig, self.ax = plt.subplots(figsize = (12, 12))
-        
 
         self.get_graph()
+        if self.fig is None:
+            if bipartite:
+                self.pos = nx.drawing.bipartite_layout(
+                    self.graph, 
+                    range(self.num_firms), 
+                    align="horizontal"
+                )
+            else:
+                self.pos = nx.drawing.spring_layout(self.graph, k = spring/np.sqrt(len(self.ids)))
+
+        pos = nx.drawing.spring_layout(self.graph, pos=self.pos, k=spring/np.sqrt(len(self.ids)), fixed = list(range(self.num_firms)))
+
+        if new_fig:
+            self.fig, self.ax = plt.subplots(figsize = (12, 12))
         
         node_colors = []
         for node in self.graph.nodes:
@@ -379,35 +391,28 @@ class Environment():
                 node_colors.append(a_color)
             else:
                 node_colors.append(b_color)
+        
 
-        if bipartite:
-            pos = nx.drawing.bipartite_layout(
-                self.graph, 
-                range(self.num_firms), 
-                align="horizontal"
-            )
-        else:
-            pos = nx.drawing.spring_layout(self.graph, k = spring/np.sqrt(len(self.ids)))
+        if firm_attrs:
+            for firm in self.firms:
 
+                if self.segregation_index == "both":
+                    seg = self.segregation(firm.id)[0]
+                else:
+                    seg = self.segregation(firm.id)
 
-        for firm in self.firms:
-
-            if self.segregation_index == "both":
-                seg = self.segregation(firm.id)[0]
-            else:
-                seg = self.segregation(firm.id)
-
-            x, y = pos[firm.id]
-            plt.text(
-                x + label_x_offset, 
-                y + label_y_offset, 
-                s = f'{seg:2g}'
-            )
+                x, y = pos[firm.id]
+                plt.text(
+                    x + label_x_offset, 
+                    y + label_y_offset, 
+                    s = f'{seg:2g}'
+                )
 
         nx.draw(
             self.graph, 
             pos=pos, 
             ax=self.ax, 
+            node_size=node_size,
             node_color= node_colors, 
             **plot_kwargs
         )
@@ -430,6 +435,8 @@ class Environment():
             fontsize=12,
             transform=self.ax.transAxes
         )
+
+        self.ax.set_title(title)
 
         return self.fig
 
