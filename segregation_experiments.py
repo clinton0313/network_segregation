@@ -124,12 +124,23 @@ step_down_exps = [
 
 env1 = Environment(**exp1)
 
+env1 = Environment(**{
+        "num_firms": 100,
+        "capacities": 150,
+        "alphas": 1,
+        "betas": 1,
+        "num_group_a": len(a_class),
+        "num_group_b": len(b_class),
+        "gammas_a": np.random.normal(pop_prop_a, gamma_std_a, len(a_class)),
+        "gammas_b": np.random.normal(pop_prop_b, gamma_std_b, len(b_class)),
+    })
+
 env1.random_assignment()
 env1.plot_network(firm_attrs=False, title="Round 0", spring = 3, node_size=100)
-env1.fig.savefig(os.path.join("simulation_figs", "round_0.png"), facecolor="white", transparent=False)
+env1.fig.savefig(os.path.join("simulation_figs", "realistic_round_0.png"), facecolor="white", transparent=False)
 
 for round in range(20):
     env1.simulate(rounds=1)
     env1.plot_network(firm_attrs=False, title=f"Round {round + 1}", spring=3, node_size=100)
-    env1.fig.savefig(os.path.join("simulation_figs", f"round_{round + 1}.png"), facecolor="white", transparent=False)
+    env1.fig.savefig(os.path.join("simulation_figs", f"realistic_round_{round + 1}.png"), facecolor="white", transparent=False)
 
